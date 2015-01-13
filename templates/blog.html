@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% for entry in entries %}
+	<div class = "entry">
+		<d iv class ="entry_subject">{{entry.subject}}</div>
+		<pre class ="entry_content">{{entry.content}}</pre>
+	</div>
+{% endfor %}
+
+
+{% endblock %}

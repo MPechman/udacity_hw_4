@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>/ascii/</title>
+	</head>
+
+	<body style="margin: 0">
+		<h1 style="background-color: #ddd; color: #888; margin: 0 height: 50px">
+			/ascii/
+		</h1>
+
+		<form method="post">
+			<label>
+				<div>title</div>
+				<input type="text" name="title" value="{{title}}">
+			</label>
+
+			<label>
+				<div>art</div>
+				<textarea name="art">{{art}}</textarea>
+			</label>
+
+			<div class="error">
+				{{error}}
+			</div>
+
+			<input type="submit">
+
+		</form>
+
+		<hr>
+
+		{% for art in arts %}
+			<div class = "art">
+				<d iv class ="art-title">{{art.title}}</div>
+				<pre class ="art-body">{{art.art}}</pre>
+			</div>
+		{% endfor %}
+
+
+
+	</body>
+
+</html>
