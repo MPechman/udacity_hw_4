@@ -3,7 +3,6 @@ import os
 import jinja2
 import webapp2
 
-import cgi
 import re
 
 import hashlib
@@ -11,15 +10,19 @@ import hmac
 
 from google.appengine.ext import db
 
+from passlib.context import CryptContext
+
+# Note - should create separate module for password_context and import
+password_context = CryptContext(schemes=["sha512_crypt"], 
+                                default="sha512_crypt", 
+                                sha512_crypt__default_rounds=45000)
+
 SECRET = "imsosecret"
 
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir),
                                 autoescape = True)
 
-
-def escape_html(text):
-    return cgi.escape(text, quote=True)
 
 # User input validation
 
@@ -52,7 +55,7 @@ def all_valid(username, password, verify, email):
         fail.  In general, probably good to think about ways to eliminate extra functions'''
 
 
-# hashing functions
+# hashing functions (using passlib module instead)
 
 def hash_str(s):
     return hmac.new(SECRET, s).hexdigest()
@@ -76,6 +79,36 @@ class Handler(webapp2.RequestHandler):
 
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
+
+
+class Entry(db.Model):
+    username = db.StringProperty(required = True)
+    password_hash = db.StringProperty(required = True)
+    created = db.DateTimeProperty(auto_now_add = True)
+
+
+class Login(Handler):
+    def get(self):
+        self.render('login.html')
+
+    def post(self):
+        user_username = self.request.get('username')
+        user_password = self.request.get('password')
+
+        q = db.GqlQuery("SELECT password_hash FROM Entry WHERE username = :user", user=user_username)
+
+        password_hash = q.get()
+        # password_hash = user_login.password_hash()
+
+        self.response.write('Welcome %(username)s!' % {"username":password_hash})
+
+        # global password_context
+        # check_password = password_context.verify(user_password, password_hash)
+
+        # if check_password:
+        #     self.redirect('/welcome')
+        # else:
+        #     self.render('login.html')
 
 
 class Signup(Handler):
@@ -103,6 +136,13 @@ class Signup(Handler):
             params['email_error'] = "That's not a valid email."
 
         if all_valid(user_username, user_password, user_verify, user_email):
+
+            global password_context
+            password_hash = password_context.encrypt(user_password)
+
+            new = Entry(username=user_username, password_hash=password_hash)
+            new.put()
+
             new_cookie_val = make_secure_val(str(user_username))
             self.response.headers.add_header('Set-Cookie', 'username=%s; Path=/' % new_cookie_val)
             self.redirect("/welcome")
@@ -124,6 +164,7 @@ class Welcome(webapp2.RequestHandler):
 
 app = webapp2.WSGIApplication([('/', Signup),
                                ('/signup', Signup),
+                               ('/login', Login),
                                ('/welcome', Welcome)
                                 ],
                                 debug=True) 
